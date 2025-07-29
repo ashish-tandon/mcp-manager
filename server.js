@@ -31,9 +31,9 @@ app.listen(port, () => {
     console.log(`MCP Manager running at http://localhost:${port}`);
     console.log('Current directory:', __dirname);
     console.log('Available routes:');
-    console.log('  GET  /api/test');
     console.log('  GET  /api/cursor-config');
     console.log('  GET  /api/claude-config');
     console.log('  GET  /api/tools');
+    console.log('  GET  /api/server-updates');
     console.log('  POST /api/save-configs');
 });

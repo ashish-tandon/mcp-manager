@@ -263,3 +263,74 @@ input:checked + .slider:before {
     border-radius: 8px;
     color: #666;
 }
+
+/* Update Indicators */
+.update-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.update-indicator.update-available {
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+}
+
+.update-indicator.up-to-date {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.update-indicator.unknown {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    color: #6c757d;
+}
+
+.update-icon {
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+.update-text {
+    flex: 1;
+}
+
+/* Refresh Updates Button */
+.refresh-updates-btn {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: #fff;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    margin-left: auto;
+}
+
+.refresh-updates-btn:hover {
+    background-color: #f8f9fa;
+    border-color: var(--primary-color);
+}
+
+.refresh-updates-btn:active {
+    transform: scale(0.98);
+}
+
+/* Pulsing animation for update available */
+.update-indicator.update-available .update-icon {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}

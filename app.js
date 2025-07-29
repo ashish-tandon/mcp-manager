@@ -1,13 +1,15 @@
 let mcpServers = {};
 let originalConfig = {};
 let toolsList = [];
+let serverUpdates = {};
 
 // API endpoints
 const API = {
     CURSOR_CONFIG: '/api/cursor-config',
     CLAUDE_CONFIG: '/api/claude-config',
     TOOLS: '/api/tools',
-    SAVE_CONFIGS: '/api/save-configs'
+    SAVE_CONFIGS: '/api/save-configs',
+    SERVER_UPDATES: '/api/server-updates'
 };
 
 function showMessage(message, isError = true) {
@@ -81,6 +83,9 @@ async function loadConfigs() {
             console.error('Error loading tools:', error);
             showMessage('Failed to load tools. Server list may be incomplete.');
         }
+
+        // Check for updates in background
+        checkForUpdates();
     } catch (error) {
         console.error('Error loading configs:', error);
         showMessage('Failed to load server configurations. Please refresh the page.');
@@ -118,6 +123,34 @@ function renderServers() {
         
         const serverPath = Array.isArray(config.args) ? config.args[0] : '';
         const envVars = config.env || {};
+        const updateInfo = serverUpdates[name];
+
+        // Create update indicator HTML
+        let updateIndicator = '';
+        if (updateInfo) {
+            if (updateInfo.hasUpdate) {
+                updateIndicator = `
+                    <div class="update-indicator update-available" title="Update available: ${updateInfo.currentVersion} → ${updateInfo.latestVersion}">
+                        <span class="update-icon">⬆</span>
+                        <span class="update-text">Update Available</span>
+                    </div>
+                `;
+            } else if (updateInfo.currentVersion && updateInfo.latestVersion) {
+                updateIndicator = `
+                    <div class="update-indicator up-to-date" title="Up to date (${updateInfo.currentVersion})">
+                        <span class="update-icon">✓</span>
+                        <span class="update-text">Up to date</span>
+                    </div>
+                `;
+            } else {
+                updateIndicator = `
+                    <div class="update-indicator unknown" title="${updateInfo.reason}">
+                        <span class="update-icon">?</span>
+                        <span class="update-text">Unknown</span>
+                    </div>
+                `;
+            }
+        }
 
         card.innerHTML = `
             <div class="server-header">
@@ -130,6 +163,7 @@ function renderServers() {
             </div>
             <div class="server-details">
                 <div class="server-path">${serverPath}</div>
+                ${updateIndicator}
                 ${Object.keys(envVars).length > 0 ? '<div class="env-vars">' + 
                     Object.entries(envVars).map(([key]) => 
                         `<div class="env-var">
@@ -195,6 +229,26 @@ function toggleServer(name, enabled) {
     }
 }
 
+async function checkForUpdates() {
+    console.log('Checking for server updates...');
+    try {
+        const updateData = await fetchWithTimeout(API.SERVER_UPDATES, { timeout: 30000 });
+        serverUpdates = updateData.updates;
+        console.log('Update check completed:', updateData);
+        
+        // Re-render servers to show update indicators
+        renderServers();
+        
+        // Show notification if updates are available
+        if (updateData.serversWithUpdates > 0) {
+            showMessage(`${updateData.serversWithUpdates} server(s) have updates available!`, false);
+        }
+    } catch (error) {
+        console.error('Error checking for updates:', error);
+        // Don't show error message to user as this is background operation
+    }
+}
+
 async function saveChanges() {
     console.log('Saving changes...');
     try {
@@ -229,3 +283,4 @@ window.onload = loadConfigs;
 window.showView = showView;
 window.toggleServer = toggleServer;
 window.saveChanges = saveChanges;
+window.checkForUpdates = checkForUpdates;
