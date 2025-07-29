@@ -17,23 +17,26 @@ function getConfigPaths() {
     if (isMac) {
         return {
             CURSOR_CONFIG_PATH: path.join(home, 'Library/Application Support/Cursor/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json'),
+            CURSOR_MCP_PATH: path.join(home, '.cursor/mcp.json'),
             CLAUDE_CONFIG_PATH: path.join(home, 'Library/Application Support/Claude/claude_desktop_config.json')
         };
     } else if (process.platform === 'win32') {
         return {
             CURSOR_CONFIG_PATH: path.join(home, 'AppData/Roaming/Cursor/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json'),
+            CURSOR_MCP_PATH: path.join(home, '.cursor/mcp.json'),
             CLAUDE_CONFIG_PATH: path.join(home, 'AppData/Roaming/Claude/claude_desktop_config.json')
         };
     } else {
         // Linux paths
         return {
             CURSOR_CONFIG_PATH: path.join(home, '.config/Cursor/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json'),
+            CURSOR_MCP_PATH: path.join(home, '.cursor/mcp.json'),
             CLAUDE_CONFIG_PATH: path.join(home, '.config/Claude/claude_desktop_config.json')
         };
     }
 }
 
-const { CURSOR_CONFIG_PATH, CLAUDE_CONFIG_PATH } = getConfigPaths();
+const { CURSOR_CONFIG_PATH, CURSOR_MCP_PATH, CLAUDE_CONFIG_PATH } = getConfigPaths();
 
 // Helper function to extract package name from server path or command
 function extractPackageInfo(serverPath, serverConfig) {
@@ -297,7 +300,18 @@ function filterDisabledServers(config) {
 router.get('/cursor-config', async (req, res) => {
     console.log('Handling /api/cursor-config request');
     try {
-        const savedConfig = await readConfigFile(CURSOR_CONFIG_PATH);
+        // Try to read from Cline-specific path first, then fall back to standard Cursor MCP path
+        let savedConfig = await readConfigFile(CURSOR_CONFIG_PATH);
+        
+        // If Cline config is empty or doesn't exist, try standard Cursor MCP file
+        if (!savedConfig || !savedConfig.mcpServers || Object.keys(savedConfig.mcpServers).length === 0) {
+            const cursorMcpConfig = await readConfigFile(CURSOR_MCP_PATH);
+            if (cursorMcpConfig && cursorMcpConfig.mcpServers && Object.keys(cursorMcpConfig.mcpServers).length > 0) {
+                savedConfig = cursorMcpConfig;
+                console.log('Using config from standard Cursor MCP file');
+            }
+        }
+        
         const defaultConfig = await readConfigFile(path.join(__dirname, 'config.json'));
         const mergedConfig = mergeConfigs(savedConfig, defaultConfig.mcpServers || {});
         console.log('Returning merged config with servers:', Object.keys(mergedConfig.mcpServers));
@@ -386,21 +400,25 @@ router.post('/save-configs', async (req, res) => {
 
         // Ensure directories exist before writing files
         await ensureDirectoryExists(CURSOR_CONFIG_PATH);
+        await ensureDirectoryExists(CURSOR_MCP_PATH);
         await ensureDirectoryExists(CLAUDE_CONFIG_PATH);
 
         // Save full config to Cursor settings (for UI state)
         const fullConfig = { mcpServers };
         await fs.writeFile(CURSOR_CONFIG_PATH, JSON.stringify(fullConfig, null, 2));
 
+        // Save full config to standard Cursor MCP file
+        await fs.writeFile(CURSOR_MCP_PATH, JSON.stringify(fullConfig, null, 2));
+
         // Save filtered config to Claude settings (removing disabled servers)
         const filteredConfig = filterDisabledServers(fullConfig);
         console.log('Filtered config for Claude:', JSON.stringify(filteredConfig, null, 2));
         await fs.writeFile(CLAUDE_CONFIG_PATH, JSON.stringify(filteredConfig, null, 2));
 
-        console.log('Configurations saved successfully');
+        console.log('Configurations saved successfully to all locations');
         res.json({ 
             success: true, 
-            message: 'Configurations saved successfully. Please restart Claude to apply changes.' 
+            message: 'Configurations saved successfully to both Cline and standard Cursor MCP files. Please restart Claude/Cursor to apply changes.' 
         });
     } catch (error) {
         console.error('Error in /api/save-configs:', error);

@@ -45,7 +45,8 @@ The MCP Server Manager uses multiple configuration files:
 
 - `config.json`: Main configuration file defining available MCP servers
 - Claude config: Located at `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
-- Cursor config: Located at `~/Library/Application Support/Cursor/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json` (macOS)
+- Cursor config (Cline): Located at `~/Library/Application Support/Cursor/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json` (macOS)
+- Cursor config (Standard): Located at `~/.cursor/mcp.json` (all platforms)
 
 ### Configuration Fields
 
